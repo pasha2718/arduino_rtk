@@ -200,9 +200,9 @@ void GetRTCM()
  * paint screen as such:
  *   0.2.4.6.8.0.2.4.6.8.
  * 0 RUNNING or TIMEOUT
- * 1 Uptime:  00:00:00
- * 2 Elapsed: 00:00:00
- * 3 Rx 123/123456              messages/bytes sent in last 10 sec
+ * 1 Uptime:     00:00:00
+ * 2 Since Last: 00:00:00
+ * 3 Rx 123/123456kb              messages/bytes sent in last 10 sec
 */
 void PaintScreen()
 {
