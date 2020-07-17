@@ -1,0 +1,7 @@
+*/build
+*/tags
+
+*.bin
+*.elf
+*.map
+*.hex
