@@ -1,7 +1,7 @@
 /*
- * Configure and enable a ZED-F9P as a rover station
- * Receive RTCM messages on LoRa and relay them to Ublox ZED-F9P module
- * Display results on LCD
+ * Just listen for RTCM messages on LoRa
+ * This is to monitor that the gps_base is still running, for debugging purposes
+ * Display timers, error message on LCD
 */
 
 #include <SPI.h>
@@ -64,15 +64,13 @@ void loop()
     if(millis() - LastMsgTime > 10000) {
       DEBUG_PRINTLN("No message in 10s");
       digitalWrite(LED_PIN_RED, HIGH); // Turn on red LED
-
     } else {
       digitalWrite(LED_PIN_RED, LOW); // Turn off red LED
-
       digitalWrite(LED_PIN_BLUE, HIGH);  // turn on blue LED, indicating timely messages
       digitalWrite(LED_PIN_BLUE2, HIGH); // turn on blue LED, indicating timely messages
     }
 
-    PaintScreen(RxCount-LastRxCount, RxByteCount-LastRxByteCount);
+    PaintScreen();
 
     LastRxCount = RxCount;
     LastRxByteCount = RxByteCount;
@@ -160,7 +158,6 @@ void InitRTCM()
   StartTime = millis();
 
   LCD.clear();
-  PaintScreen(0, 0);
 
   // overcoming a bug where ROVER won't print first 10 secs
   LCD.setCursor(0, 0);
@@ -202,80 +199,40 @@ void GetRTCM()
 /*
  * paint screen as such:
  *   0.2.4.6.8.0.2.4.6.8.
- * 0 RTCM Acc 123.123m
- * 1 Lat  -123.1234567 F0    end with fix type
- * 2 Long -123.1234567 R0    end with rtk type
- * 3 Tx 123/123456 Sat 12
- *
- * title[] goes into (0,0)
- * trx[] goes into (0,3) and is supposed to be 2 characters
- * diffCount is the number of messages passed since the last display
- * diffBytes is the number of bytes passed since the last display 
+ * 0 RUNNING or TIMEOUT
+ * 1 Uptime:  00:00:00
+ * 2 Elapsed: 00:00:00
+ * 3 Rx 123/123456              messages/bytes sent in last 10 sec
 */
-void PaintScreen(unsigned long diffCount, unsigned long diffBytes)
+void PaintScreen()
 {
-  char msgbuf[21] = {0};
-
-  // rewrite title in case the push-button diagnostics overwrote it
   LCD.setCursor(0, 0);
-  strcat(msgbuf, title);
-  strcat(msgbuf, " Acc");
-  LcdPad(msgbuf, 20);                     // this says "$title Acc" padded to full row
 
-  uint32_t accuracy = MY_GPS.getPositionAccuracy();
-  LCD.setCursor(strlen(msgbuf)+1, 0);     // place it one space after Acc
-  // this number occasionally flips to a strange value, DK why.
-  // in this case just flash "Inf" instead of the huge number
-  if (accuracy < 1000000) {
-    LCD.print(accuracy/1000., 3);
+  if(millis() - LastMsgTime > 10000) {
+    // we are in timeout mode
+    LcdPad("TIMEOUT", 20);
   } else {
-    LCD.print("1000 ");
+    // we are in normal good mode
+    LcdPad("LISTEN", 20);
   }
-  LCD.print("m");
 
-  /* int32_t latitude = MY_GPS.getHighResLatitude(); */
-  long latitude = MY_GPS.getLatitude();
   LCD.setCursor(0, 1);
-  LcdPad("Lat ", 20);
-  LCD.setCursor(5, 1);
-  if (latitude >= 0) {
-    LCD.print(" ");
-  }
-  LCD.print(latitude / 10e6, 7);
+  LCD.print("Elapsed:    ");
+  LcdTimestamp(millis(), StartTime);
 
-  LCD.setCursor(18, 1);
-  LCD.print("F");
-  //Returns the type of fix: 0=no, 3=3D, 4=GNSS+Deadreckoning, 5=Survey-in
-  LCD.print(MY_GPS.getFixType());   
-
-  /* int32_t longitude = MY_GPS.getHighResLongitude(); */
-  long longitude = MY_GPS.getLongitude();
   LCD.setCursor(0, 2);
-  LcdPad("Long ", 20);
-  LCD.setCursor(5, 2);
-  if (longitude >= 0) {
-    LCD.print(" ");
-  }
-  LCD.print(longitude / 10e6, 7);
-  LCD.setCursor(18, 2);
-  LCD.print("R");
-  //Returns RTK solution: 0=no, 1=float solution, 2=fixed solution
-  LCD.print(MY_GPS.getCarrierSolutionType());   
+  LCD.print("Since Last: ");
+  LcdTimestamp(millis(), LastMsgTime);
 
   LCD.setCursor(0, 3);
-  strcpy(msgbuf, trx);
-  strcat(msgbuf, "           Sat");
-  LcdPad(msgbuf, 20);
+  LcdPad("Rx", 20);
   LCD.setCursor(3, 3);
-  LCD.print(diffCount);       // number of msg sent last 10 sec
+  LCD.print(RxCount-LastRxCount);       // number of msg sent last 10 sec
   LCD.print("=");
   // convert number of bytes sent last 10 sec to kbps
-  float kbps = diffBytes / 10. * 8 / 1024.;
+  float kbps = (RxByteCount-LastRxByteCount) / 10. * 8 / 1024.;
   LCD.print(kbps, 1);
   LCD.print("kb");
-
-  LCD.setCursor(17, 3);
-  LCD.print(MY_GPS.getSIV(500)); //Returns number of sats used in fix
 }
 /*
  * Print msg to the LCD, truncating at or padding to msglen
@@ -332,27 +289,4 @@ void LcdTimestamp(unsigned long currTime, unsigned long startTime)
     sprintf(timestamp, "%02i:%02i", minutes, seconds);
   }
   LCD.print(timestamp);
-}
-
-
-
-/*
- * Return the number of free bytes in memory, approximately
-*/
-#ifdef __arm__
-// should use uinstd.h to define sbrk but Due causes a conflict
-extern "C" char* sbrk(int incr);
-#else  // __ARM__
-extern char *__brkval;
-#endif  // __arm__
-
-int FreeMemory() {
-  char top;
-#ifdef __arm__
-  return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-  return &top - __brkval;
-#else  // __arm__
-  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
 }
