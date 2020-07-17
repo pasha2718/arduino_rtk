@@ -6,7 +6,7 @@
 #  	make all PROJECT=foo
 # Ctags will just come for the ride
 
-PROJECT ?= Blink
+PROJECT ?= gps_base
 
 # BOARD_TYPE ?= SparkFun:samd:RedBoard_Turbo
 BOARD_TYPE  ?= SparkFun:samd:samd21_proRF
