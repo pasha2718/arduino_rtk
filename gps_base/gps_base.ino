@@ -422,6 +422,9 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
    * which processes every byte, then sends it to this function.
    * We want to do the same, forming sentences and sending packets to the radio
   */
+
+  digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED1 while in this loop (trying to catch where it sticks)
+
   // note that RTCMFrameCounter is the *prior* count
   // TODO C consider removing this msgtype business if things get slow, it's just debug
   if (RTCMFrameCounter == 1) {
@@ -458,13 +461,13 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
 
     /* DEBUG_PRINT(F(".")); */
 
-    digitalWrite(LED_PIN_BLUE, HIGH);  // flash the blue LED while transmitting
+    digitalWrite(LED_PIN_BLUE2, HIGH);  // flash blue LED2 while transmitting
 
     // send the full message out on the radio
     RF95.send(RTCMSendBuffer, RTCMLen);
     RF95.waitPacketSent();
 
-    digitalWrite(LED_PIN_BLUE, LOW);
+    digitalWrite(LED_PIN_BLUE2, LOW);   // end of BLUE2 flash
 
     TxCount++;
     TxByteCount += RTCMLen;
@@ -475,6 +478,8 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
     RTCMMsgType = 0;
     // don't need to clear the buffer because counter 
     /* memset(RTCMSendBuffer, 0, sizeof(RTCMSendBuffer)); */
+
+    digitalWrite(LED_PIN_BLUE, LOW);   // end of BLUE flash
 
     // slight delay trying to keep it from freezing up
     delay(50);
