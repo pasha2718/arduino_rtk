@@ -3,7 +3,7 @@
 #  to compile:
 #  	make PROJECT=foo
 #  to compile and upload to arduino:  
-#  	make all PROJECT=foo to 
+#  	make all PROJECT=foo
 # Ctags will just come for the ride
 
 PROJECT ?= Blink
