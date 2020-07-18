@@ -76,20 +76,32 @@ void loop()
 {
   SwitchState = digitalRead(SWITCH_PIN);      // chech switch/button status
 
-  if (SwitchState == HIGH) {  // switch is off - do RTCM
-    if (SwitchState != LastSwitch || millis() - LastPaint > 10000) {
-      // only refresh screen every 10 seconds, it's slow and we are focusing on messages
-      PaintScreen("RTCM", "Tx", TxCount-LastTxCount, TxByteCount-LastTxByteCount);
+  if (SwitchState == LOW) {  // switch is on, down - do diag once
+    if (SwitchState != LastSwitch) {
+      DoDiagnostics();       // just run it once and leave that first run on the screen until release
+    }
+    // leave it visible as long as switch is down
+
+  } else {                   // switch is off, up - do normal display
+    if (SwitchState != LastSwitch) {    // it was just released or just starting
+      digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED while painting
+      PaintPosition("RTCM"); // the position doesn't change after survey so don't waste time re-accessing and painting it.
+      digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED while painting
+    }
+
+    if (millis() - LastPaint > 10000) {
+      // only refresh the last line of the screen every 10 seconds, it's slow and we are focusing on messages
+      digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED1 while painting
+      PaintTRx("Tx", TxCount-LastTxCount, TxByteCount-LastTxByteCount);
+      digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED1 while painting
+
       LastTxCount = TxCount;
       LastTxByteCount = TxByteCount;
       LastPaint = millis();
     }
-  } else if (SwitchState != LastSwitch) { // switch is on - do diagnostics
-    DoDiagnostics();                      // just run it once
-    // leave that first run on the screen until release
   }
 
-  MY_GPS.checkUblox();     //See if new GPS data are available - sends bytes to processRTCM()
+  MY_GPS.checkUblox();     // Always see if new GPS data are available - sends bytes to processRTCM()
 
   LastSwitch = SwitchState;
 
@@ -422,6 +434,9 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
    * which processes every byte, then sends it to this function.
    * We want to do the same, forming sentences and sending packets to the radio
   */
+
+  /* digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED1 while in this loop (trying to catch where it sticks) */
+
   // note that RTCMFrameCounter is the *prior* count
   // TODO C consider removing this msgtype business if things get slow, it's just debug
   if (RTCMFrameCounter == 1) {
@@ -458,13 +473,13 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
 
     /* DEBUG_PRINT(F(".")); */
 
-    digitalWrite(LED_PIN_BLUE, HIGH);  // flash the blue LED while transmitting
+    digitalWrite(LED_PIN_BLUE2, HIGH);  // flash blue LED2 while transmitting
 
     // send the full message out on the radio
     RF95.send(RTCMSendBuffer, RTCMLen);
     RF95.waitPacketSent();
 
-    digitalWrite(LED_PIN_BLUE, LOW);
+    digitalWrite(LED_PIN_BLUE2, LOW);   // end of BLUE2 flash
 
     TxCount++;
     TxByteCount += RTCMLen;
@@ -475,6 +490,8 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
     RTCMMsgType = 0;
     // don't need to clear the buffer because counter 
     /* memset(RTCMSendBuffer, 0, sizeof(RTCMSendBuffer)); */
+
+    /* digitalWrite(LED_PIN_BLUE, LOW);   // end of BLUE flash */
 
     // slight delay trying to keep it from freezing up
     delay(50);
