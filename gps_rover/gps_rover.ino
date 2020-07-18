@@ -67,7 +67,8 @@ void loop()
 
     if (millis() - LastPaint > 10000) {
       // only refresh screen every 10 seconds, it's slow and we are focusing on messages
-      PaintScreen("ROVER", "Rx", RxCount-LastRxCount, RxByteCount-LastRxByteCount);
+      PaintPosition("ROVER");
+      PaintTRx("Rx", RxCount-LastRxCount, RxByteCount-LastRxByteCount);
 
       //Turn on Red LED if we haven't received a packet after 10s
       if(millis() - LastMsgTime > 10000) {
@@ -264,7 +265,7 @@ void InitRTCM()
   StartTime = millis();
 
   LCD.clear();
-  PaintScreen("ROVER", "Rx", 0, 0);
+  PaintPosition("ROVER");
   // overcoming a bug where ROVER won't print first 10 secs
   LCD.setCursor(0, 0);
   LcdPad("ROVER Acc", 9);

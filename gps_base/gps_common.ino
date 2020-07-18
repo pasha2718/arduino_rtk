@@ -1,5 +1,5 @@
 /*
- * paint screen as such:
+ * paint top 3 lines of screen as such:
  *   0.2.4.6.8.0.2.4.6.8.
  * 0 RTCM Acc 123.123m
  * 1 Lat  -123.1234567 F0    end with fix type
@@ -11,7 +11,7 @@
  * diffCount is the number of messages passed since the last display
  * diffBytes is the number of bytes passed since the last display 
 */
-void PaintScreen(char title[], char trx[], unsigned long diffCount, unsigned long diffBytes)
+void PaintPosition(char title[])
 {
   char msgbuf[21] = {0};
 
@@ -60,7 +60,21 @@ void PaintScreen(char title[], char trx[], unsigned long diffCount, unsigned lon
   LCD.print("R");
   //Returns RTK solution: 0=no, 1=float solution, 2=fixed solution
   LCD.print(MY_GPS.getCarrierSolutionType());   
+}
 
+/*
+ * Paint the bottom line for Tx
+ * paint top 3 lines of screen as such:
+ *   0.2.4.6.8.0.2.4.6.8.
+ * 3 Tx 123/123456 Sat 12
+ *
+ * trx[] goes into (0,3) and is supposed to be 2 characters
+ * diffCount is the number of messages passed since the last display
+ * diffBytes is the number of bytes passed since the last display 
+ */
+void PaintTRx(char trx[], unsigned long diffCount, unsigned long diffBytes)
+{
+  char msgbuf[21] = {0};
   LCD.setCursor(0, 3);
   strcpy(msgbuf, trx);
   strcat(msgbuf, "           Sat");
@@ -76,6 +90,7 @@ void PaintScreen(char title[], char trx[], unsigned long diffCount, unsigned lon
   LCD.setCursor(17, 3);
   LCD.print(MY_GPS.getSIV(500)); //Returns number of sats used in fix
 }
+
 /*
  * Print msg to the LCD, truncating at or padding to msglen
 */
