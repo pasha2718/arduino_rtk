@@ -98,6 +98,7 @@ void loop()
     }
   } else if (SwitchState != LastSwitch) { // switch is on - do diagnostics
     DoDiagnostics();                      // just run it once
+    // TODO A: do a better job at keeping it visible while button is pushed
     LastPosPaint = 0;                     // leave that first run on the screen until release
   }
 
