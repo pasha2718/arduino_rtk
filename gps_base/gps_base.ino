@@ -80,6 +80,8 @@ void loop()
     if (SwitchState != LastSwitch) {
       DoDiagnostics();       // just run it once and leave that first run on the screen until release
     }
+    // leave it visible as long as switch is down
+
   } else {                   // switch is off, up - do normal display
     if (SwitchState != LastSwitch) {    // it was just released or just starting
       digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED while painting
@@ -88,9 +90,8 @@ void loop()
     }
 
     if (millis() - LastPaint > 10000) {
-      // only refresh screen every 10 seconds, it's slow and we are focusing on messages
+      // only refresh the last line of the screen every 10 seconds, it's slow and we are focusing on messages
       digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED1 while painting
-      /* PaintScreen("RTCM", "Tx", TxCount-LastTxCount, TxByteCount-LastTxByteCount); */
       PaintTRx("Tx", TxCount-LastTxCount, TxByteCount-LastTxByteCount);
       digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED1 while painting
 
@@ -100,7 +101,7 @@ void loop()
     }
   }
 
-  MY_GPS.checkUblox();     // Alwasys see if new GPS data are available - sends bytes to processRTCM()
+  MY_GPS.checkUblox();     // Always see if new GPS data are available - sends bytes to processRTCM()
 
   LastSwitch = SwitchState;
 
