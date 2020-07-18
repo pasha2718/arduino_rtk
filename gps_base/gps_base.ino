@@ -45,7 +45,6 @@ SFE_UBLOX_GPS MY_GPS; // Initialize the GPS library with default I2C address 0x4
 
 int SwitchState = HIGH;                // is the switch on or off now
 int LastSwitch = LOW;                  // the SwitchState in the last loop
-int LastPosPaint = 0;                  // whether we have painted the position
 unsigned long TxCount = 0;             // how many RTCM messages have been sent on LoRa
 unsigned long TxByteCount = 0;         // how many RTCM bytes have been sent on LoRa
 unsigned long LastTxCount = 0;         // prior value for timing on LCD
@@ -75,36 +74,33 @@ void setup()
 
 void loop()
 {
-  digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED while painting
-
   SwitchState = digitalRead(SWITCH_PIN);      // chech switch/button status
 
-  // the position doesn't change after survey so don't waste time re-accessing and painting it.
-  if ( ! LastPosPaint ) {
-    PaintPosition("RTCM");
-    LastPosPaint = 1;
-  }
+  if (SwitchState == LOW) {  // switch is on, down - do diag once
+    if (SwitchState != LastSwitch) {
+      DoDiagnostics();       // just run it once and leave that first run on the screen until release
+    }
+  } else {                   // switch is off, up - do normal display
+    if (SwitchState != LastSwitch) {    // it was just released or just starting
+      digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED while painting
+      PaintPosition("RTCM"); // the position doesn't change after survey so don't waste time re-accessing and painting it.
+      digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED while painting
+    }
 
-  if (SwitchState == HIGH) {  // switch is off - do RTCM
-    if (SwitchState != LastSwitch || millis() - LastPaint > 10000) {
+    if (millis() - LastPaint > 10000) {
       // only refresh screen every 10 seconds, it's slow and we are focusing on messages
-      digitalWrite(LED_PIN_BLUE2, HIGH);  // flash blue LED while painting
+      digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED1 while painting
       /* PaintScreen("RTCM", "Tx", TxCount-LastTxCount, TxByteCount-LastTxByteCount); */
       PaintTRx("Tx", TxCount-LastTxCount, TxByteCount-LastTxByteCount);
-      digitalWrite(LED_PIN_BLUE2, LOW);  // flash blue LED while painting
+      digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED1 while painting
+
       LastTxCount = TxCount;
       LastTxByteCount = TxByteCount;
       LastPaint = millis();
     }
-  } else if (SwitchState != LastSwitch) { // switch is on - do diagnostics
-    DoDiagnostics();                      // just run it once
-    // TODO A: do a better job at keeping it visible while button is pushed
-    LastPosPaint = 0;                     // leave that first run on the screen until release
   }
 
-  digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED while painting
-
-  MY_GPS.checkUblox();     //See if new GPS data are available - sends bytes to processRTCM()
+  MY_GPS.checkUblox();     // Alwasys see if new GPS data are available - sends bytes to processRTCM()
 
   LastSwitch = SwitchState;
 
@@ -476,13 +472,13 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
 
     /* DEBUG_PRINT(F(".")); */
 
-    /* digitalWrite(LED_PIN_BLUE2, HIGH);  // flash blue LED2 while transmitting */
+    digitalWrite(LED_PIN_BLUE2, HIGH);  // flash blue LED2 while transmitting
 
     // send the full message out on the radio
     RF95.send(RTCMSendBuffer, RTCMLen);
     RF95.waitPacketSent();
 
-    /* digitalWrite(LED_PIN_BLUE2, LOW);   // end of BLUE2 flash */
+    digitalWrite(LED_PIN_BLUE2, LOW);   // end of BLUE2 flash
 
     TxCount++;
     TxByteCount += RTCMLen;
