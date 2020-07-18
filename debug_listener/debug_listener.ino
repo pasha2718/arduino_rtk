@@ -63,11 +63,15 @@ void loop()
     //Turn on Red LED if we haven't received a packet after 10s
     if(millis() - LastMsgTime > 10000) {
       DEBUG_PRINTLN("No message in 10s");
-      digitalWrite(LED_PIN_RED, HIGH); // Turn on red LED
+      // set LEDs to show message timeout
+      digitalWrite(LED_PIN_RED, HIGH);
+      digitalWrite(LED_PIN_BLUE, LOW);
+      digitalWrite(LED_PIN_BLUE2, LOW);
     } else {
-      digitalWrite(LED_PIN_RED, LOW); // Turn off red LED
-      digitalWrite(LED_PIN_BLUE, HIGH);  // turn on blue LED, indicating timely messages
-      digitalWrite(LED_PIN_BLUE2, HIGH); // turn on blue LED, indicating timely messages
+      // set LEDs to show timely messages
+      digitalWrite(LED_PIN_RED, LOW);
+      digitalWrite(LED_PIN_BLUE, HIGH);
+      digitalWrite(LED_PIN_BLUE2, HIGH);
     }
 
     PaintScreen();
