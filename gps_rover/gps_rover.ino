@@ -42,7 +42,7 @@ void setup()
   SetupLCD();       // set up the SerLCD display
   SetupGPS();       // set up the zed-f9p RTK2 GPS
   SetupRadio();     // set up the LoRa Radio
-  delay(1000);      // just so I can see it before the party starts
+  delay(2000);      // just so I can see it before the party starts
 
   InitRTCM();       // prepare to receive RTCM on LoRa, send to ZED
 }
@@ -185,9 +185,7 @@ void SetupGPS()
 	/* response &= MY_GPS.enableNMEAMessage(UBX_NMEA_VTG, COM_PORT_USB);   // course over ground */
 	/* response &= MY_GPS.enableNMEAMessage(UBX_NMEA_ZDA, COM_PORT_USB);   // time and date */
 
-  if (response == true) {
-    LCD.print("NMEA ");
-  } else {
+  if (response != true) {
     LCD.setCursor(0, 3);
     LcdPad("GPS UBX Fail Config", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
@@ -255,7 +253,7 @@ void RelayRTCM()
     uint8_t loraBuf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t loraLen = sizeof(loraBuf);
 
-    if (RF95.recv(loraBuf, &loraLen)){
+    if (RF95.recv(loraBuf, &loraLen)) {
       RxCount++;
       RxByteCount += loraLen;
 
@@ -268,6 +266,7 @@ void RelayRTCM()
 
       LastMsgTime = millis();    // Timestamp this packet
       delay(10);                 // give the bus a tiny break
+    }
   }
 }
 
