@@ -15,18 +15,21 @@ SERIAL_PORT ?= /dev/ttyACM0
 ARDUINO_CLI = /usr/bin/arduino-cli
 CTAGS       = /usr/bin/ctags
 
+# it'd be nice to send this as a variable into compile but I don't see the option
+# so we write it to git-version.h in the project
+GIT_VERSION := $(shell git describe --tags --always --dirty 2> /dev/null)
+
 compile: ctags
+		@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $(PWD)/$(PROJECT)/git-version.h
 		$(ARDUINO_CLI) compile --fqbn $(BOARD_TYPE) $(PROJECT)
-		@rm $(PWD)/$(PROJECT)/build/*/*.hex
-		@rm $(PWD)/$(PROJECT)/build/*/*.map
 
 upload:
 		$(ARDUINO_CLI) upload -p $(SERIAL_PORT) --fqbn $(BOARD_TYPE) $(PROJECT)
 
-all: compile upload
-
 ctags:
-	@$(CTAGS) -f $(PWD)/$(PROJECT)/tags -R $(PWD)/$(PROJECT)
+		@$(CTAGS) -f $(PWD)/$(PROJECT)/tags -R $(PWD)/$(PROJECT)
+
+all: compile upload
 
 clean:
 		@rm -rf $(PWD)/$(PROJECT)/build

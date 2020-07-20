@@ -4,24 +4,12 @@
  * Display results on LCD
 */
 
-#include <SPI.h>
-#include <Wire.h> //Needed for I2C to GPS
-#include <RH_RF95.h> // Radio Head Library:
-#include "SparkFun_Ublox_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_Ublox_GPS
-#include <SerLCD.h> //Click here to get the library: http://librarymanager/All#SparkFun_SerLCD
-
-/* #define DEBUG */
-#ifdef DEBUG
-#define DEBUG_BEGIN()  SerialUSB.begin(9600); while (! SerialUSB); 
-#define DEBUG_PRINT(x)  SerialUSB.print(x);
-#define DEBUG_PRINT2(x,y)  SerialUSB.print(x,y);
-#define DEBUG_PRINTLN(x)  SerialUSB.println(x);
-#else
-#define DEBUG_BEGIN()
-#define DEBUG_PRINT(x)
-#define DEBUG_PRINT2(x,y)
-#define DEBUG_PRINTLN(x)
-#endif
+#include <SPI.h>                            // Needed for access to radio
+#include <Wire.h>                           // Needed for I2C to GPS and LCD
+#include <RH_RF95.h>                        // Radio Head Library:
+#include <SparkFun_Ublox_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_Ublox_GPS
+#include <SerLCD.h>                         // Click here to get the library: http://librarymanager/All#SparkFun_SerLCD
+#include "git-version.h"
 
 const int LED_PIN_RED =  9;       // Pin that has the red LED (shows error)
 const int LED_PIN_BLUE = 4;       // Pin that has the blue LED (shows RTK1)
@@ -54,7 +42,7 @@ void setup()
   SetupLCD();       // set up the SerLCD display
   SetupGPS();       // set up the zed-f9p RTK2 GPS
   SetupRadio();     // set up the LoRa Radio
-  delay(1000);      // just so I can see it before the party starts
+  delay(2000);      // just so I can see it before the party starts
 
   InitRTCM();       // prepare to receive RTCM on LoRa, send to ZED
 }
@@ -72,7 +60,6 @@ void loop()
 
       //Turn on Red LED if we haven't received a packet after 10s
       if(millis() - LastMsgTime > 10000) {
-        DEBUG_PRINTLN("No message in 10s");
         digitalWrite(LED_PIN_RED, HIGH); // Turn on red LED
       } else {
         digitalWrite(LED_PIN_RED, LOW); // Turn off red LED
@@ -117,9 +104,6 @@ void loop()
 */
 void SetupLED()
 {
-  DEBUG_BEGIN();
-  DEBUG_PRINTLN("Booting GPS Rover");
-
   pinMode(LED_PIN_RED, OUTPUT);
   pinMode(LED_PIN_BLUE, OUTPUT);
   pinMode(LED_PIN_BLUE2, OUTPUT);
@@ -144,7 +128,13 @@ void SetupLCD()
   /* LCD.setBacklight(0x808080);    // grey */
 
   LCD.clear();
-  LcdPad("LCD Ready", 20);
+  LCD.setCursor(0, 0);
+  LCD.print("GPS Rover");
+  LCD.setCursor(0, 1);
+  LcdPad(GIT_VERSION, 20);
+
+  LCD.setCursor(0, 2);
+  LCD.print("LCD ");
 }
 
 void SetupGPS()
@@ -152,8 +142,7 @@ void SetupGPS()
   MY_GPS.begin(Wire);
 
   if (MY_GPS.isConnected() == false) {
-    DEBUG_PRINTLN(F("Ublox GPS not detected. Freezing."));
-    LCD.setCursor(0, 1);
+    LCD.setCursor(0, 3);
     LcdPad("No GPS detected", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
     while (1);
@@ -163,15 +152,12 @@ void SetupGPS()
   // The lora radio doesn't use i2c so no problem there.
   Wire.setClock(400000); //Increase I2C clock speed to 400kHz
 
-  LCD.setCursor(0, 1);
-  LcdPad("GPS Detected", 20);
-
   // Example code looks for an old running survey and reconnects.
   // This causes problems when you move sites, it just skips the survey and starts at the wrong place.
   // Instead, let's do a full reset to clear the field
-  LCD.setCursor(0, 1);
-  LcdPad("GPS Factory Reset", 20);
   MY_GPS.factoryReset(); // factory reset to get rid of prior positions, surveys, everything
+
+  LCD.print("GPS ");
 
   bool response = true;
   // we want UBX and NMEA to come out of the USB port for the laptop user.
@@ -199,13 +185,8 @@ void SetupGPS()
 	/* response &= MY_GPS.enableNMEAMessage(UBX_NMEA_VTG, COM_PORT_USB);   // course over ground */
 	/* response &= MY_GPS.enableNMEAMessage(UBX_NMEA_ZDA, COM_PORT_USB);   // time and date */
 
-  if (response == true) {
-    DEBUG_PRINTLN(F("UBX and NMEA messages enabled"));
-    LCD.setCursor(0, 2);
-    LcdPad("GPS UBX NMEA", 20);
-  } else {
-    DEBUG_PRINTLN(F("UBX failed to enable. Are you sure you have an ZED-F9P? Freezing."));
-    LCD.setCursor(0, 2);
+  if (response != true) {
+    LCD.setCursor(0, 3);
     LcdPad("GPS UBX Fail Config", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
     while (1); //Freeze
@@ -216,12 +197,9 @@ void SetupGPS()
   response &= MY_GPS.setDynamicModel(DYN_MODEL_PEDESTRIAN);
 
   if (response == true) {
-    DEBUG_PRINTLN(F("RTCM messages enabled"));
-    LCD.setCursor(0, 2);
-    LcdPad("GPS RTCM Enabled", 20);
+    LCD.print("RTCM ");
   } else {
-    DEBUG_PRINTLN(F("RTCM failed to enable. Are you sure you have an ZED-F9P? Freezing."));
-    LCD.setCursor(0, 2);
+    LCD.setCursor(0, 3);
     LcdPad("GPS Failed Configure", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
     while (1); //Freeze
@@ -230,17 +208,9 @@ void SetupGPS()
 
 void SetupRadio()
 {
-  // set up the LoRa radio
-  LCD.setCursor(0, 3);
-  LcdPad("Radio Init", 20);
-
+  // Set up the LoRa radio
   // Initialize the Radio. 
-  if (RF95.init() == true) {
-    DEBUG_PRINTLN(F("Radio is ready"));
-    LCD.setCursor(0, 3);
-    LcdPad("Radio is ready", 20);
-  } else {
-    DEBUG_PRINTLN(F("Radio Init Failed - Freezing"));
+  if (RF95.init() != true) {
     LCD.setCursor(0, 3);
     LcdPad("Radio Init Failed", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
@@ -249,13 +219,12 @@ void SetupRadio()
 
   RF95.setFrequency(FREQUENCY); 
   RF95.setModemConfig(RH_RF95::Bw500Cr45Sf128);    // change config to fast+shortrange
+
+  LCD.print("Radio");
 }
 
 void InitRTCM()
 {
-  DEBUG_PRINTLN();
-  DEBUG_PRINTLN(F("Starting RTCM Reception"));
-
   digitalWrite(LED_PIN_RED, LOW);
   digitalWrite(LED_PIN_BLUE, LOW);
   digitalWrite(LED_PIN_BLUE2, LOW);
@@ -284,15 +253,9 @@ void RelayRTCM()
     uint8_t loraBuf[RH_RF95_MAX_MESSAGE_LEN];
     uint8_t loraLen = sizeof(loraBuf);
 
-    if (RF95.recv(loraBuf, &loraLen)){
+    if (RF95.recv(loraBuf, &loraLen)) {
       RxCount++;
       RxByteCount += loraLen;
-
-      /* DEBUG_PRINT("New message: "); */
-      /* DEBUG_PRINT((LoraBuf[3]) << 4 | (LoraBuf[4] >> 4));   // message type */
-      /* DEBUG_PRINT("/"); */
-      /* DEBUG_PRINT(((LoraBuf[1] & 0x03) << 8 | LoraBuf[2]) + 6); // message length */
-      /* DEBUG_PRINT(" "); */
 
       // Send this RTCM packet via I2C to RTK2
       Wire.beginTransmission(GPS_I2C_ADDRESS);
@@ -303,9 +266,6 @@ void RelayRTCM()
 
       LastMsgTime = millis();    // Timestamp this packet
       delay(10);                 // give the bus a tiny break
-
-    } else {
-      DEBUG_PRINTLN("Receive failed");
     }
   }
 }
