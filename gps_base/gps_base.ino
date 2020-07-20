@@ -10,7 +10,7 @@
  * During RTCM mode, the button will show some diagnostics on LCD
 */
 
-#include <SPI.h>
+#include <SPI.h>                            // Needed for access to radio
 #include <Wire.h>                           // Needed for I2C to GPS and LCD
 #include <RH_RF95.h>                        // Radio Head Library:
 #include <SparkFun_Ublox_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_Ublox_GPS
@@ -73,7 +73,7 @@ void loop()
   } else {                   // switch is off, up - do normal display
     if (SwitchState != LastSwitch) {    // it was just released or just starting
       digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED while painting
-      PaintPosition("RTCM"); // the position doesn't change after survey so don't waste time re-accessing and painting it.
+      PaintPosition("BASE"); // the position doesn't change after survey so don't waste time re-accessing and painting it.
       digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED while painting
     }
 
@@ -161,8 +161,7 @@ void SetupGPS()
 void SetupRadio()
 {
   // Set up the LoRa radio
-  if (RF95.init() == true) {
-  } else {
+  if (RF95.init() != true) {
     LCD.setCursor(0, 3);
     LcdPad("Radio Init Failed", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
