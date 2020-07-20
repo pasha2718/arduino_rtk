@@ -15,19 +15,7 @@
 #include <RH_RF95.h> // Radio Head Library:
 #include "SparkFun_Ublox_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_Ublox_GPS
 #include <SerLCD.h> //Click here to get the library: http://librarymanager/All#SparkFun_SerLCD
-
-/* #define DEBUG */
-#ifdef DEBUG
-#define DEBUG_BEGIN()  SerialUSB.begin(9600); while (! SerialUSB); 
-#define DEBUG_PRINT(x)  SerialUSB.print(x);
-#define DEBUG_PRINT2(x,y)  SerialUSB.print(x,y);
-#define DEBUG_PRINTLN(x)  SerialUSB.println(x);
-#else
-#define DEBUG_BEGIN()
-#define DEBUG_PRINT(x)
-#define DEBUG_PRINT2(x,y)
-#define DEBUG_PRINTLN(x)
-#endif
+#include "git-version.h"
 
 const int LED_PIN_RED =  9;       // Pin that has the red LED (shows error)
 const int LED_PIN_BLUE = 4;       // Pin that has the blue LED (shows RTK1)
@@ -113,9 +101,6 @@ void loop()
 */
 void SetupLED()
 {
-  DEBUG_BEGIN();
-  DEBUG_PRINTLN("Booting GPS Base");
-
   pinMode(LED_PIN_RED, OUTPUT);
   pinMode(LED_PIN_BLUE, OUTPUT);
   pinMode(LED_PIN_BLUE2, OUTPUT);
@@ -140,7 +125,13 @@ void SetupLCD()
   /* LCD.setBacklight(0x808080);    // grey */
 
   LCD.clear();
-  LcdPad("LCD Ready", 20);
+  LCD.setCursor(0, 0);
+  LCD.print("GPS Base");
+  LCD.setCursor(0, 1);
+  LcdPad(GIT_VERSION, 20);
+
+  LCD.setCursor(0, 2);
+  LCD.print("LCD ");
 }
 
 void SetupGPS()
@@ -148,8 +139,7 @@ void SetupGPS()
   MY_GPS.begin(Wire);
 
   if (MY_GPS.isConnected() == false) {
-    DEBUG_PRINTLN(F("Ublox GPS not detected. Freezing."));
-    LCD.setCursor(0, 1);
+    LCD.setCursor(0, 3);
     LcdPad("No GPS detected", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
     while (1);
@@ -159,33 +149,21 @@ void SetupGPS()
   // The lora radio doesn't use i2c so no problem there.
   Wire.setClock(400000); //Increase I2C clock speed to 400kHz
 
-  LCD.setCursor(0, 1);
-  LcdPad("GPS Detected", 20);
-
   // Example code looks for an old running survey and reconnects.
   // This causes problems when you move sites, it just skips the survey and starts at the wrong place.
   // Instead, let's do a full reset to clear the field
-  LCD.setCursor(0, 1);
-  LcdPad("GPS Factory Reset", 20);
   MY_GPS.factoryReset(); // factory reset to get rid of prior positions, surveys, everything
 
+  LCD.print("GPS ");
   // more config is in InitRTCM() - survey seems to wipe some of it out
 }
 
 void SetupRadio()
 {
-  // set up the LoRa radio
-  LCD.setCursor(0, 3);
-  LcdPad("Radio Init", 20);
-
-  // Initialize the Radio. 
+  // Set up the LoRa radio
   if (RF95.init() == true) {
-    DEBUG_PRINTLN(F("Radio is ready"));
-    LCD.setCursor(0, 2);
-    LcdPad("Radio ready", 20);
   } else {
-    DEBUG_PRINTLN(F("Radio Init Failed - Freezing"));
-    LCD.setCursor(0, 2);
+    LCD.setCursor(0, 3);
     LcdPad("Radio Init Failed", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
     while (1);
@@ -194,7 +172,7 @@ void SetupRadio()
   RF95.setFrequency(FREQUENCY); 
 
   if (RF95.isChannelActive()) {
-    LCD.setCursor(0, 2);
+    LCD.setCursor(0, 3);
     LcdPad("Radio Freq in Use", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
     while (1);
@@ -202,6 +180,8 @@ void SetupRadio()
 
   RF95.setModemConfig(RH_RF95::Bw500Cr45Sf128);    // change config to fast+shortrange
   RF95.setTxPower(20, false);     // boost power to 20db, default 13
+
+  LCD.print("Radio ");
 }
 
 /*
@@ -212,7 +192,6 @@ void SetupRadio()
 void WaitForFix()
 {
   unsigned long startFix = millis();
-  DEBUG_PRINTLN(F("Waiting for fix before survey-in..."));
   LCD.setCursor(0, 3);
   LcdPad("Wait fix", 20);
 
@@ -246,7 +225,6 @@ void RunSurvey()
 
   bool response = MY_GPS.getSurveyStatus(2000); //Query module for SVIN status with 2000ms timeout (request can take a long time)
   if (response == false) {
-    DEBUG_PRINTLN(F("Failed to get Survey-In status. Freezing."));
     LCD.setCursor(0, 2);
     LcdPad("Svin query failed", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
@@ -254,21 +232,17 @@ void RunSurvey()
   }
 
   if (MY_GPS.svin.active == true) {
-    DEBUG_PRINTLN(F("Stopping prior survey"));
     LCD.setCursor(0, 2);
     LcdPad("Stop prior survey", 20);
     MY_GPS.disableSurveyMode(); // Disable a running survey
   }
 
-  DEBUG_PRINTLN();
-  DEBUG_PRINTLN(F("Starting new survey"));
   LCD.setCursor(0, 2);
   LcdPad("Starting new survey", 20);
 
   response = MY_GPS.enableSurveyMode(surveyMinutes * 60, 5.000); // start Survey-In, 5/30 minutes, 5.0m
 
   if (response == false) {
-    DEBUG_PRINTLN(F("Survey start failed. Freezing."));
     LCD.setCursor(0, 2);
     LcdPad("Survey start failed", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
@@ -276,8 +250,6 @@ void RunSurvey()
   }
 
   StartTime = MY_GPS.svin.observationTime;
-
-  DEBUG_PRINTLN(F("Survey started. This will run until minutes has passed AND less than 5m accuracy is achieved."));
 
   LCD.clear();
   LCD.setCursor(0, 0);
@@ -349,7 +321,6 @@ void RunSurvey()
 
   digitalWrite(LED_PIN_BLUE, LOW);  // turn off blue LEDs, indicating survey is done
   digitalWrite(LED_PIN_BLUE2, LOW);
-  DEBUG_PRINTLN(F("Base survey complete!"));
   LCD.setCursor(0, 3);
   LcdPad("SURVEY Complete!", 20);
 }
@@ -368,9 +339,6 @@ void InitRTCM()
   digitalWrite(LED_PIN_RED, LOW);
   digitalWrite(LED_PIN_BLUE, LOW);
 
-  DEBUG_PRINTLN();
-  DEBUG_PRINTLN(F("Final config for RTCM"));
-
   bool response = true;
 
   // These are in fact the messages that are suggested in the integ doc page 19
@@ -388,11 +356,9 @@ void InitRTCM()
   /* MY_GPS.saveConfiguration();          //Save the current settings to flash and BBR */
 
   if (response == true) {
-    DEBUG_PRINTLN(F("RTCM messages enabled"));
     LCD.setCursor(0, 1);
     LcdPad("GPS RTCM Enabled", 20);
   } else {
-    DEBUG_PRINTLN(F("RTCM failed to enable. Are you sure you have an ZED-F9P? Freezing."));
     LCD.setCursor(0, 1);
     LcdPad("GPS RTCM Fail Config", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
@@ -403,8 +369,6 @@ void InitRTCM()
   // We would be DYN_MODEL_STATIONARY for base
   response &= MY_GPS.setDynamicModel(DYN_MODEL_STATIONARY);
 
-  DEBUG_PRINTLN();
-  DEBUG_PRINTLN(F("Starting RTCM Transmissions"));
   LCD.setCursor(0, 2);
   LcdPad("Starting RTCM", 20);
 
@@ -455,23 +419,12 @@ void SFE_UBLOX_GPS::processRTCM(uint8_t incoming)
   if (RTCMFrameCounter <= sizeof(RTCMSendBuffer)) {
     RTCMSendBuffer[RTCMFrameCounter-1] = incoming; // add this to the buffer to send
   } else {
-    DEBUG_PRINTLN(F("RTCM Message too big - freezing"));
     LcdPad("RTCM msg too big", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
     while(1);
   }
 
   if (RTCMFrameCounter > 4 && RTCMFrameCounter == RTCMLen) { // we have a complete message
-
-    /* if (TxCount % 8 == 0) { */
-    /*   DEBUG_PRINTLN(); */
-    /* } */
-    /* DEBUG_PRINT(RTCMMsgType); */
-    /* DEBUG_PRINT("="); */
-    /* DEBUG_PRINT(RTCMLen); */
-    /* DEBUG_PRINT(" "); */
-
-    /* DEBUG_PRINT(F(".")); */
 
     digitalWrite(LED_PIN_BLUE2, HIGH);  // flash blue LED2 while transmitting
 
