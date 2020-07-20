@@ -29,6 +29,9 @@ upload:
 ctags:
 		@$(CTAGS) -f $(PWD)/$(PROJECT)/tags -R $(PWD)/$(PROJECT)
 
+gitversion:
+		@echo $(GIT_VERSION)
+
 all: compile upload
 
 clean:
