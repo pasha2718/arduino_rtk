@@ -11,10 +11,10 @@
 */
 
 #include <SPI.h>
-#include <Wire.h> //Needed for I2C to GPS
-#include <RH_RF95.h> // Radio Head Library:
-#include "SparkFun_Ublox_Arduino_Library.h" //Click here to get the library: http://librarymanager/All#SparkFun_Ublox_GPS
-#include <SerLCD.h> //Click here to get the library: http://librarymanager/All#SparkFun_SerLCD
+#include <Wire.h>                           // Needed for I2C to GPS and LCD
+#include <RH_RF95.h>                        // Radio Head Library:
+#include <SparkFun_Ublox_Arduino_Library.h> // Click here to get the library: http://librarymanager/All#SparkFun_Ublox_GPS
+#include <SerLCD.h>                         // Click here to get the library: http://librarymanager/All#SparkFun_SerLCD
 #include "git-version.h"
 
 const int LED_PIN_RED =  9;       // Pin that has the red LED (shows error)
