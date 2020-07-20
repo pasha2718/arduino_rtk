@@ -17,7 +17,7 @@ CTAGS       = /usr/bin/ctags
 
 # it'd be nice to send this as a variable into compile but I don't see the option
 # so we write it to git-version.h in the project
-GIT_VERSION := $(shell git describe --tags --always --dirty --abbrev=4 2> /dev/null)
+GIT_VERSION := $(shell git describe --tags --always --dirty 2> /dev/null)
 
 compile: ctags
 		@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $(PWD)/$(PROJECT)/git-version.h
