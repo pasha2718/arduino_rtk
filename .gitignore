@@ -1,6 +1,6 @@
 */build
 */tags
-*/git-version.h
+*/git_version.h
 
 *.bin
 *.elf
