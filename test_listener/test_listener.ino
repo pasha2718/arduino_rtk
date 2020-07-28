@@ -5,30 +5,15 @@
 */
 
 #include <SPI.h>
-#include <Wire.h> //Needed for I2C to GPS
-#include <RH_RF95.h> // Radio Head Library:
-#include <SerLCD.h> //Click here to get the library: http://librarymanager/All#SparkFun_SerLCD
-
-/* #define DEBUG */
-#ifdef DEBUG
-#define DEBUG_BEGIN()  SerialUSB.begin(9600); while (! SerialUSB); 
-#define DEBUG_PRINT(x)  SerialUSB.print(x);
-#define DEBUG_PRINT2(x,y)  SerialUSB.print(x,y);
-#define DEBUG_PRINTLN(x)  SerialUSB.println(x);
-#else
-#define DEBUG_BEGIN()
-#define DEBUG_PRINT(x)
-#define DEBUG_PRINT2(x,y)
-#define DEBUG_PRINTLN(x)
-#endif
+#include <Wire.h>              // Needed for I2C to GPS
+#include <RH_RF95.h>           // Radio Head Library:
+#include <SerLCD.h>            // Click here to get the library: http://librarymanager/All#SparkFun_SerLCD
+#include "gps_frequency.h"     // only contains the FREQUENCY constant
 
 const int LED_PIN_RED =  9;       // Pin that has the red LED (shows error)
 const int LED_PIN_BLUE = 4;       // Pin that has the blue LED (shows RTK1)
 const int LED_PIN_BLUE2 = 3;      // Pin that has the second blue LED (shows RTK2)
 const int SWITCH_PIN = 2;         // Pin that has the switch (shows diag)
-
-// The broadcast frequency can be anywhere from 902-928MHz
-const float FREQUENCY = 921.2;    // frequency in Mhz for broadcast
 
 // Give the RFM95 module's chip select and interrupt pins to the RF95 instance
 // On the SparkFun ProRF those pins are 12 and 6 respectively.
@@ -62,7 +47,6 @@ void loop()
 
     //Turn on Red LED if we haven't received a packet after 10s
     if(millis() - LastMsgTime > 10000) {
-      DEBUG_PRINTLN("No message in 10s");
       // set LEDs to show message timeout
       digitalWrite(LED_PIN_RED, HIGH);
       digitalWrite(LED_PIN_BLUE, LOW);
@@ -95,9 +79,6 @@ void loop()
 */
 void SetupLED()
 {
-  DEBUG_BEGIN();
-  DEBUG_PRINTLN("Booting Debug Listener");
-
   pinMode(LED_PIN_RED, OUTPUT);
   pinMode(LED_PIN_BLUE, OUTPUT);
   pinMode(LED_PIN_BLUE2, OUTPUT);
@@ -133,11 +114,9 @@ void SetupRadio()
 
   // Initialize the Radio. 
   if (RF95.init() == true) {
-    DEBUG_PRINTLN(F("Radio is ready"));
     LCD.setCursor(0, 3);
     LcdPad("Radio is ready", 20);
   } else {
-    DEBUG_PRINTLN(F("Radio Init Failed - Freezing"));
     LCD.setCursor(0, 3);
     LcdPad("Radio Init Failed", 20);
     digitalWrite(LED_PIN_RED, HIGH); // turn on red LED, indicating error
@@ -150,9 +129,6 @@ void SetupRadio()
 
 void InitRTCM()
 {
-  DEBUG_PRINTLN();
-  DEBUG_PRINTLN(F("Starting RTCM Reception"));
-
   digitalWrite(LED_PIN_RED, LOW);
   digitalWrite(LED_PIN_BLUE, LOW);
   digitalWrite(LED_PIN_BLUE2, LOW);
@@ -185,17 +161,8 @@ void GetRTCM()
       RxCount++;
       RxByteCount += loraLen;
 
-      /* DEBUG_PRINT("New message: "); */
-      /* DEBUG_PRINT((LoraBuf[3]) << 4 | (LoraBuf[4] >> 4));   // message type */
-      /* DEBUG_PRINT("/"); */
-      /* DEBUG_PRINT(((LoraBuf[1] & 0x03) << 8 | LoraBuf[2]) + 6); // message length */
-      /* DEBUG_PRINT(" "); */
-
       LastMsgTime = millis();    // Timestamp this packet
       delay(10);                 // give the bus a tiny break
-
-    } else {
-      DEBUG_PRINTLN("Receive failed");
     }
   }
 }
@@ -233,10 +200,10 @@ void PaintScreen()
   LCD.setCursor(3, 3);
   LCD.print(RxCount-LastRxCount);       // number of msg sent last 10 sec
   LCD.print("=");
-  // convert number of bytes sent last 10 sec to kbps
-  float kbps = (RxByteCount-LastRxByteCount) / 10. * 8 / 1024.;
+  // convert number of bytes sent last 10 sec to kilobytes/sec
+  float kbps = (RxByteCount-LastRxByteCount) / 10. / 1000.;
   LCD.print(kbps, 1);
-  LCD.print("kb");
+  LCD.print("kB");
 }
 /*
  * Print msg to the LCD, truncating at or padding to msglen
