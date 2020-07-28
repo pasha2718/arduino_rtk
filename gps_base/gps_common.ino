@@ -83,7 +83,7 @@ void PaintTRx(char trx[], unsigned long diffCount, unsigned long diffBytes)
   LCD.print(diffCount);       // number of msg sent last 10 sec
   LCD.print("=");
   // convert number of bytes sent last 10 sec to kbps
-  float kbps = diffBytes / 10. * 8 / 1024.;
+  float kbps = diffBytes / 10. / 1024.;
   LCD.print(kbps, 1);
   LCD.print("kb");
 
