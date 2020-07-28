@@ -79,6 +79,7 @@ void loop()
       // only refresh the last line of the screen every 10 seconds, it's slow and we are focusing on messages
       digitalWrite(LED_PIN_BLUE, HIGH);  // flash blue LED1 while painting
       PaintTRx("Tx", TxCount-LastTxCount, TxByteCount-LastTxByteCount);
+      PaintSat();
       digitalWrite(LED_PIN_BLUE, LOW);  // flash blue LED1 while painting
 
       LastTxCount = TxCount;
@@ -207,11 +208,11 @@ void WaitForFix()
 */
 void RunSurvey()
 {
-  /* TODO set survey back down from 3 hours to 30 minutes if not useful */
+  // 3h survey is a long time but it gets 0.256m accuracy.
   uint8_t surveyMinutes = 180;
-  // if the button is down, survey 5 minutes instead of 3 hours
+  // if the button is down, survey 30 minutes instead of 3 hours
   if (digitalRead(SWITCH_PIN) == LOW) {
-    surveyMinutes = 5;
+    surveyMinutes = 30;
   }
 
   digitalWrite(LED_PIN_BLUE, HIGH);  // turn on both blue LEDs, indicating survey
@@ -270,11 +271,11 @@ void RunSurvey()
        * 2 
        * 3 T180 123:12:12
       */
-      // rewrite title in case the push-button diagnostics overwrote it
+      // rewrite title, clearing rest of line to erase old digits
       LCD.setCursor(0, 0);
       LcdPad("SURVEY Acc", 20);
 
-      // use the mean survey-in accuracy, in meters
+      // use the mean survey-in accuracy, in meters, not current accuracy
       LCD.setCursor(11, 0);
       LCD.print(MY_GPS.svin.meanAccuracy, 3);
       LCD.print("m");
@@ -285,11 +286,13 @@ void RunSurvey()
       LCD.setCursor(4, 1);
       LCD.print(MY_GPS.getSIV(500)); //Returns number of sats used in fix
 
+      LCD.setCursor(0, 2);
+      LCD.print("Min T ");
+      LCD.print(surveyMinutes);
+
       LCD.setCursor(0, 3);
       LcdPad("T", 20);
-      LCD.setCursor(1, 3);
-      LCD.print(surveyMinutes);
-      LCD.setCursor(6, 3);
+      LCD.setCursor(2, 3);
       LcdTimestamp(millis(), StartTime);
 
     } else {
