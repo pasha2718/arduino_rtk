@@ -63,10 +63,9 @@ void PaintPosition(char title[])
 }
 
 /*
- * Paint the bottom line for Tx
- * paint top 3 lines of screen as such:
+ * Paint the bytes on the bottom line for Tx
  *   0.2.4.6.8.0.2.4.6.8.
- * 3 Tx 123/123456 Sat 12
+ * 3 Tx 123/123456 
  *
  * trx[] goes into (0,3) and is supposed to be 2 characters
  * diffCount is the number of messages passed since the last display
@@ -74,20 +73,28 @@ void PaintPosition(char title[])
  */
 void PaintTRx(char trx[], unsigned long diffCount, unsigned long diffBytes)
 {
-  char msgbuf[21] = {0};
   LCD.setCursor(0, 3);
-  strcpy(msgbuf, trx);
-  strcat(msgbuf, "           Sat");
-  LcdPad(msgbuf, 20);
+  LcdPad(trx, 20);
   LCD.setCursor(3, 3);
   LCD.print(diffCount);       // number of msg sent last 10 sec
   LCD.print("=");
-  // convert number of bytes sent last 10 sec to kbps
-  float kbps = diffBytes / 10. * 8 / 1024.;
+  // convert number of bytes sent last 10 sec to KB/s kilobytes per second
+  float kbps = diffBytes / 10. / 1000.;
   LCD.print(kbps, 1);
-  LCD.print("kb");
+  LCD.print("kB");
+}
 
-  LCD.setCursor(17, 3);
+/*
+ * Paint the sat count on the bottom line
+ *   0.2.4.6.8.0.2.4.6.8.
+ * 3               Sat 12
+ *
+ * This assumes the line is cleared above
+ */
+void PaintSat()
+{
+  LCD.setCursor(13, 3);
+  LCD.print("Sat ");
   LCD.print(MY_GPS.getSIV(500)); //Returns number of sats used in fix
 }
 

@@ -16,11 +16,11 @@ ARDUINO_CLI = /usr/bin/arduino-cli
 CTAGS       = /usr/bin/ctags
 
 # it'd be nice to send this as a variable into compile but I don't see the option
-# so we write it to git-version.h in the project
+# so we write it to git_version.h in the project
 GIT_VERSION := $(shell git describe --tags --always --dirty 2> /dev/null)
 
 compile: ctags
-		@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $(PWD)/$(PROJECT)/git-version.h
+		@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $(PWD)/$(PROJECT)/git_version.h
 		$(ARDUINO_CLI) compile --fqbn $(BOARD_TYPE) $(PROJECT)
 
 upload:
