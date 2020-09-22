@@ -19,7 +19,7 @@ CTAGS       = /usr/bin/ctags
 # so we write it to git_version.h in the project
 GIT_VERSION := $(shell git describe --tags --always --dirty 2> /dev/null)
 
-compile: ctags
+compile: ctags gitversion
 		@echo "#define GIT_VERSION \"$(GIT_VERSION)\"" > $(PWD)/$(PROJECT)/git_version.h
 		$(ARDUINO_CLI) compile --fqbn $(BOARD_TYPE) $(PROJECT)
 
