@@ -1,10 +1,17 @@
 # Usage:
-#  from this upper directory, above projects run make
+#  run make from this upper directory, above the projects 
+#  specify the project with PROJECT=x
+#  PROJECT must be in upper case with no dash
+#
 #  to compile:
 #  	make PROJECT=foo
 #  to compile and upload to arduino:  
 #  	make all PROJECT=foo
-# Ctags will just come for the ride
+#
+# The git version is calculated and made into an include file
+# to be displayed at runtime.
+#
+# Ctags and gitversion calculation just come for the ride
 
 PROJECT ?= gps_base
 
@@ -37,4 +44,4 @@ all: compile upload
 clean:
 		@rm -rf $(PWD)/$(PROJECT)/build
 
-.PHONY: compile upload all clean ctags
+.PHONY: compile upload all clean ctags gitversion
